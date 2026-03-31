@@ -46,28 +46,31 @@ class FraudDetectionModel:
         return df
 
     def train(self, df):
-        # v1.0.8 TANK BUILD: Indestructible Selection
+        # v1.0.9 ROOT CAUSE FIX
         df = df.copy()
         df.dropna(inplace=True)
         
-        # Hardcode every column assignment with .loc to be 1000% sure
+        # Store LabelEncoders for predict() and explain() calls AFTER training
+        for col in ['Location', 'Transaction_Type', 'Device']:
+            le = LabelEncoder()
+            le.fit(df[col].astype(str))
+            self.le_dict[col] = le
+        
+        # Encode features
         df.loc[:, 'Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
-        df.loc[:, 'loc_enc'] = LabelEncoder().fit_transform(df['Location'].astype(str))
-        df.loc[:, 'type_enc_v2'] = LabelEncoder().fit_transform(df['Transaction_Type'].astype(str))
-        df.loc[:, 'dev_enc'] = LabelEncoder().fit_transform(df['Device'].astype(str))
+        df.loc[:, 'loc_enc'] = self.le_dict['Location'].transform(df['Location'].astype(str))
+        df.loc[:, 'type_enc'] = self.le_dict['Transaction_Type'].transform(df['Transaction_Type'].astype(str))
+        df.loc[:, 'dev_enc'] = self.le_dict['Device'].transform(df['Device'].astype(str))
         
         if 'Time' in df.columns:
             df.loc[:, 'Hour'] = df['Time'].apply(lambda x: int(x.split(':')[0]) if isinstance(x, str) and ':' in x else 12)
         else:
             df.loc[:, 'Hour'] = 12
-            
-        target_features = ['Amount', 'loc_enc', 'type_enc_v2', 'Hour', 'dev_enc']
         
-        # This reindex() method is IMMUNE to 'not in index' errors
+        target_features = ['Amount', 'loc_enc', 'type_enc', 'Hour', 'dev_enc']
         X = df.reindex(columns=target_features).fillna(0)
         y = df['Status'].apply(lambda x: 1 if str(x).lower() == 'fraud' else 0)
         
-        # Update self.features to match for the explain() method
         self.features = target_features
         
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)

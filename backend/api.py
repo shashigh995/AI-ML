@@ -157,7 +157,7 @@ def train_model():
         
         return jsonify({
             'success': True,
-            'version': '1.0.7 TRUTH',
+            'version': '1.0.9 ROOT CAUSE',
             'message': 'Model trained and risk scores updated!',
             'accuracies': results
         })
@@ -167,7 +167,7 @@ def train_model():
         traceback.print_exc()
         return jsonify({
             'error': f"Internal Error: {str(e)}",
-            'version': '1.0.7 TRUTH'
+            'version': '1.0.9 ROOT CAUSE'
         }), 500
 
 @app.route('/api/explain/<int:id>')
