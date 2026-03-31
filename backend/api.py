@@ -116,33 +116,41 @@ def upload_csv():
 
 @app.route('/api/train', methods=['POST'])
 def train_model():
-    transactions = Transaction.query.all()
-    if not transactions:
-        return jsonify({'error': 'No data in database to train on'})
-    
-    data = []
-    for t in transactions:
-        data.append({
-            'Amount': t.amount, 'Location': t.location, 'Transaction_Type': t.transaction_type,
-            'Time': t.time, 'Device': t.device, 'Status': t.status
+    try:
+        transactions = Transaction.query.all()
+        if not transactions:
+            return jsonify({'error': 'No data in database to train on'})
+            
+        data = []
+        for t in transactions:
+            data.append({
+                'Amount': t.amount, 'Location': t.location, 'Transaction_Type': t.transaction_type,
+                'Time': t.time, 'Device': t.device, 'Status': t.status
+            })
+        
+        df = pd.DataFrame(data)
+        if len(df['Status'].unique()) < 2:
+            return jsonify({'error': 'Dataset must contain both Fraud and Safe examples'})
+        
+        results = model_engine.train(df)
+        
+        # After training, update all risk scores manually for demo consistency
+        trained_transactions = Transaction.query.all()
+        for t in trained_transactions:
+            point = {'Amount': t.amount, 'Location': t.location, 'Transaction_Type': t.transaction_type, 'Time': t.time, 'Device': t.device}
+            pred = model_engine.predict(point)
+            t.risk_score = pred['risk_score']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Model trained and risk scores updated!',
+            'accuracies': results
         })
-    
-    df = pd.DataFrame(data)
-    if len(df['Status'].unique()) < 2:
-        return jsonify({'error': 'Dataset must contain both Fraud and Safe examples'})
-    
-    results = model_engine.train(df)
-    
-    pending = Transaction.query.all()
-    for t in pending:
-        data_point = {'Amount': t.amount, 'Location': t.location, 'Transaction_Type': t.transaction_type, 'Time': t.time, 'Device': t.device}
-        res = model_engine.predict(data_point)
-        t.status = 'Fraud' if res['is_fraud'] else 'Safe'
-        t.risk_score = res['risk_score']
-        t.prediction_confidence = res['confidence']
-    
-    db.session.commit()
-    return jsonify({'success': True, 'accuracies': results})
+    except Exception as e:
+        print(f"TRAIN ERROR: {str(e)}")
+        return jsonify({'error': f"Internal Error: {str(e)}"}), 500
 
 @app.route('/api/explain/<int:id>')
 def explain_transaction(id):
