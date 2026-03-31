@@ -161,7 +161,7 @@
             if (!confirm(`Are you sure you want to delete ${ids.length} transactions?`)) return;
 
             try {
-                const res = await fetch(`${API_URL}/transactions/delete`, {
+                const res = await fetch(`${API_URL}/transactions/delete?t=${Date.now()}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ids })
@@ -198,7 +198,7 @@
             }, 800);
 
             try {
-                const res = await fetch(`${API_URL}/train`, { method: 'POST' });
+                const res = await fetch(`${API_URL}/train?t=${Date.now()}`, { method: 'POST' });
                 
                 // Detailed logging for troubleshooting
                 console.log('--- Training Response Received ---');
