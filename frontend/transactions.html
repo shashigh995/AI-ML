@@ -112,12 +112,16 @@
     </div>
 
     <script>
+        let allTransactions = []; // Local cache for instant modal updates
+
         async function loadTransactions() {
             const table = document.getElementById('transactionTable');
             table.innerHTML = '<div style="text-align: center; padding: 2rem;">Loading...</div>';
             const res = await fetch(`${API_URL}/transactions`);
             const data = await res.json();
+            allTransactions = data; // Cache the results
             table.innerHTML = '';
+            
             data.forEach(t => {
                 const badgeClass = t.risk_score <= 30 ? 'badge-safe' : (t.risk_score <= 70 ? 'badge-medium' : 'badge-danger');
                 table.innerHTML += `
@@ -216,6 +220,18 @@
         }
         async function showExplanation(id) {
             const modal = document.getElementById('explanationModal');
+            const localTx = allTransactions.find(t => t.id === id); // Instant lookup
+            
+            // Show metadata immediately while loading AI details
+            if (localTx) {
+                document.getElementById('modalTxID').textContent = 'Transaction #' + localTx.transaction_id;
+                document.getElementById('modalTxDetails').textContent = `₹${localTx.amount} | ${localTx.location || 'Online'}`;
+                const badge = document.getElementById('modalBadge');
+                badge.textContent = localTx.status;
+                const score = parseInt(localTx.risk_score);
+                badge.className = `badge ${score <= 30 ? 'badge-safe' : (score <= 70 ? 'badge-medium' : 'badge-danger')}`;
+            }
+
             document.getElementById('modalLoading').style.display = 'block'; 
             document.getElementById('modalData').style.display = 'none';
             modal.style.display = 'flex';
@@ -227,13 +243,7 @@
                 document.getElementById('modalLoading').style.display = 'none'; 
                 document.getElementById('modalData').style.display = 'block';
 
-                document.getElementById('modalTxID').textContent = 'Transaction #' + (data.transaction_id || '91717bb3');
-                document.getElementById('modalTxDetails').textContent = `₹${data.amount || 0} | ${data.location || 'Online'}`;
-                
-                const badge = document.getElementById('modalBadge');
-                badge.textContent = data.status || 'Safe';
-                badge.className = `badge ${data.risk_score <= 30 ? 'badge-safe' : (data.risk_score <= 70 ? 'badge-medium' : 'badge-danger')}`;
-
+                // Update with final server data if needed, but local data already did the heavy lifting
                 if (data.error) {
                     document.getElementById('predictionText').innerHTML = `<span style="color: var(--warning)"><i class="fas fa-exclamation-triangle"></i> ${data.error}. Please click "Re-Train Model" to initialize AI insights.</span>`;
                     document.getElementById('featureList').innerHTML = '';
