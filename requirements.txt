@@ -1,6 +1,8 @@
 flask
 flask-cors
 flask-sqlalchemy
+psycopg2-binary
+gunicorn
 pandas
 numpy
 scikit-learn
@@ -9,4 +11,3 @@ matplotlib
 seaborn
 python-dotenv
 joblib
-sqlite3
