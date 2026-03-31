@@ -495,6 +495,8 @@ body {
         color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        min-width: 80px;
+        flex-shrink: 0;
     }
 
     /* Label each cell */
