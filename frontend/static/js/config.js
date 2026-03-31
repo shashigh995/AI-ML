@@ -1,5 +1,5 @@
 // Configuration for Vercel Frontend to communicate with Render Backend
-const API_URL = "https://your-backend-on-render.onrender.com/api"; 
+const API_URL = "https://ai-ml-1rec.onrender.com/api";
 
 // Helper to handle API requests
 async function apiFetch(endpoint, options = {}) {
