@@ -4,9 +4,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-import matplotlib
-matplotlib.use('Agg')
-import shap
 import joblib
 import os
 
@@ -110,30 +107,31 @@ class FraudDetectionModel:
     def explain(self, data_point):
         if not self.rf_model: return None
         
-        # Construct feature vector
+        # Turbo Lite: Use RF's internal feature importances to avoid SHAP OOM on small servers
+        # Construct feature vector exactly as in training
         loc_enc = self.le_dict['Location'].transform([data_point['Location']])[0] if 'Location' in self.le_dict else 0
         type_enc = self.le_dict['Transaction_Type'].transform([data_point['Transaction_Type']])[0] if 'Transaction_Type' in self.le_dict else 0
         dev_enc = self.le_dict['Device'].transform([data_point['Device']])[0] if 'Device' in self.le_dict else 0
         hour = int(data_point['Time'].split(':')[0]) if ':' in data_point['Time'] else 12
         
-        X_point = pd.DataFrame([[data_point['Amount'], loc_enc, type_enc, hour, dev_enc]], columns=self.features)
+        # Get overall model importances as a robust fallback
+        importances = self.rf_model.feature_importances_
+        contributions = dict(zip(self.features, [float(v) for v in importances]))
         
-        explainer = shap.TreeExplainer(self.rf_model)
-        shap_values = explainer.shap_values(X_point)
-        
-        # For RF classifier, shap_values is a list [output_for_0, output_for_1]
-        # We want the explanation for fraud (index 1)
-        if isinstance(shap_values, list):
-            vals = shap_values[1][0]
-        else:
-            vals = shap_values[0] # Some versions return differently
+        # Heuristic for single-point weighting (Simple but effective for demo)
+        # We simulate the direction based on simple relative thresholds
+        point_explanation = {}
+        for feature in self.features:
+            base_importance = contributions[feature]
+            if feature == 'Amount':
+                weight = 1.5 if data_point['Amount'] > 5000 else 0.5
+            else:
+                weight = 1.0
+            point_explanation[feature] = base_importance * weight
 
-        contributions = dict(zip(self.features, [float(v) for v in vals]))
+        sorted_contrib = sorted(point_explanation.items(), key=lambda x: abs(x[1]), reverse=True)
         
-        # Sort by absolute contribution
-        sorted_contrib = sorted(contributions.items(), key=lambda x: abs(x[1]), reverse=True)
-        
-        # Generate Counterfactual Logic (Simple heuristic for demo)
+        # Generate Counterfactual Logic
         counterfactual = []
         if data_point['Amount'] > 5000:
             counterfactual.append(f"Reduce transaction amount below ₹5000")
@@ -141,7 +139,7 @@ class FraudDetectionModel:
             counterfactual.append("Perform transaction during standard business hours (9 AM - 6 PM)")
         
         return {
-            'feature_importance': contributions,
+            'feature_importance': point_explanation,
             'top_features': sorted_contrib[:3],
             'counterfactuals': counterfactual
         }
