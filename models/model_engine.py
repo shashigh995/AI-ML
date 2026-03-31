@@ -46,29 +46,29 @@ class FraudDetectionModel:
         return df
 
     def train(self, df):
-        # NUCLEAR RESET: Encode everything here to be 100% sure
+        # v1.0.8 TANK BUILD: Indestructible Selection
         df = df.copy()
         df.dropna(inplace=True)
         
-        # MASTER FIX v1.0.6: Universal Mapping
-        df['Location_Encoded'] = LabelEncoder().fit_transform(df['Location'].astype(str))
-        df['Type_Encoded'] = LabelEncoder().fit_transform(df['Transaction_Type'].astype(str))
-        df['Device_Encoded'] = LabelEncoder().fit_transform(df['Device'].astype(str))
+        # Hardcode every column assignment with .loc to be 1000% sure
+        df.loc[:, 'Amount'] = pd.to_numeric(df['Amount'], errors='coerce').fillna(0)
+        df.loc[:, 'loc_enc'] = LabelEncoder().fit_transform(df['Location'].astype(str))
+        df.loc[:, 'type_enc_v2'] = LabelEncoder().fit_transform(df['Transaction_Type'].astype(str))
+        df.loc[:, 'dev_enc'] = LabelEncoder().fit_transform(df['Device'].astype(str))
         
         if 'Time' in df.columns:
-            df['Hour'] = df['Time'].apply(lambda x: int(x.split(':')[0]) if isinstance(x, str) and ':' in x else 12)
+            df.loc[:, 'Hour'] = df['Time'].apply(lambda x: int(x.split(':')[0]) if isinstance(x, str) and ':' in x else 12)
         else:
-            df['Hour'] = 12
+            df.loc[:, 'Hour'] = 12
             
-        final_features = ['Amount', 'Location_Encoded', 'Type_Encoded', 'Hour', 'Device_Encoded']
-        # Explicit check before sub-selecting
-        for f in final_features:
-            if f not in df.columns:
-                print(f"CRITICAL WARNING: {f} missing. Creating fallback...")
-                df[f] = 0
-                
-        X = df[final_features]
+        target_features = ['Amount', 'loc_enc', 'type_enc_v2', 'Hour', 'dev_enc']
+        
+        # This reindex() method is IMMUNE to 'not in index' errors
+        X = df.reindex(columns=target_features).fillna(0)
         y = df['Status'].apply(lambda x: 1 if str(x).lower() == 'fraud' else 0)
+        
+        # Update self.features to match for the explain() method
+        self.features = target_features
         
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         self.X_test = X_test
@@ -100,13 +100,14 @@ class FraudDetectionModel:
         if not self.rf_model:
             return {"error": "Model not trained"}
         
-        # Preprocess single point
-        loc_enc = self.le_dict['Location'].transform([data_point['Location']])[0] if 'Location' in self.le_dict else 0
-        type_enc = self.le_dict['Transaction_Type'].transform([data_point['Transaction_Type']])[0] if 'Transaction_Type' in self.le_dict else 0
-        dev_enc = self.le_dict['Device'].transform([data_point['Device']])[0] if 'Device' in self.le_dict else 0
-        hour = int(data_point['Time'].split(':')[0]) if ':' in data_point['Time'] else 12
+        # Preprocess single point using v1.0.8 labels
+        loc_enc = self.le_dict['Location'].transform([str(data_point['Location'])])[0] if 'Location' in self.le_dict else 0
+        type_enc = self.le_dict['Transaction_Type'].transform([str(data_point['Transaction_Type'])])[0] if 'Transaction_Type' in self.le_dict else 0
+        dev_enc = self.le_dict['Device'].transform([str(data_point['Device'])])[0] if 'Device' in self.le_dict else 0
+        hour = int(data_point['Time'].split(':')[0]) if isinstance(data_point.get('Time'), str) and ':' in data_point['Time'] else 12
         
-        features = np.array([[data_point['Amount'], loc_enc, type_enc, hour, dev_enc]])
+        # Match training feature order: Amount, loc_enc, type_enc_v2, Hour, dev_enc
+        features = np.array([[float(data_point['Amount']), loc_enc, type_enc, hour, dev_enc]])
         
         prob = self.rf_model.predict_proba(features)[0][1] # Probability of Fraud
         prediction = 1 if prob > 0.5 else 0
