@@ -162,6 +162,40 @@ body {
     flex-direction: column;
 }
 
+.table-container {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.table-header, .table-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1.5fr 1fr 0.8fr 1.2fr;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.table-header th {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: left; /* Start with left, handle centering via Grid */
+}
+
+.table-cell {
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.table-row:hover {
+    background: rgba(255,255,255,0.02);
+}
+
 .chart-container canvas {
     max-height: 320px !important;
 }
@@ -194,10 +228,11 @@ body {
 
 /* Risk Badge Styling */
 .badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 0.8rem;
     font-weight: 600;
+    display: inline-block;
 }
 
 .badge-safe { background: rgba(16, 185, 129, 0.1); color: var(--success); }

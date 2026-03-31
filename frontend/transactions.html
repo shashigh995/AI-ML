@@ -40,11 +40,18 @@
             <div id="trainModelBtn" class="btn btn-primary" onclick="trainAndRefresh()"><i class="fas fa-magic"></i> Re-Train Model</div>
         </header>
 
-        <section class="glass animate-fade" style="overflow-x: auto;">
-            <table class="table-container">
-                <thead><tr class="table-header"><th class="text-center">TX ID</th><th>AMOUNT</th><th>LOCATION</th><th>PREDICTION</th><th class="text-center">RISK</th><th class="text-center">ACTION</th></tr></thead>
-                <tbody id="transactionTable"></tbody>
-            </table>
+        <section class="glass animate-fade" style="padding: 0; overflow: hidden;">
+            <div class="table-container">
+                <div class="table-header">
+                    <div>TX ID</div>
+                    <div>AMOUNT</div>
+                    <div>LOCATION</div>
+                    <div>PREDICTION</div>
+                    <div class="text-center">RISK</div>
+                    <div class="text-center">ACTION</div>
+                </div>
+                <div id="transactionTable"></div>
+            </div>
         </section>
     </main>
 
@@ -98,13 +105,25 @@
     <script>
         async function loadTransactions() {
             const table = document.getElementById('transactionTable');
-            table.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">Loading...</td></tr>';
+            table.innerHTML = '<div style="text-align: center; padding: 2rem;">Loading...</div>';
             const res = await fetch(`${API_URL}/transactions`);
             const data = await res.json();
             table.innerHTML = '';
             data.forEach(t => {
-                const badge = t.risk_score <= 30 ? 'badge-safe' : (t.risk_score <= 70 ? 'badge-medium' : 'badge-danger');
-                table.innerHTML += `<tr class="table-row"><td class="table-cell">#${t.transaction_id}</td><td class="table-cell">₹${t.amount}</td><td class="table-cell">${t.location}</td><td class="table-cell"><span class="badge ${badge}">${t.status}</span></td><td class="table-cell">${t.risk_score}</td><td class="table-cell"><button class="btn btn-primary" onclick="showExplanation(${t.id})">Explain</button></td></tr>`;
+                const badgeClass = t.risk_score <= 30 ? 'badge-safe' : (t.risk_score <= 70 ? 'badge-medium' : 'badge-danger');
+                table.innerHTML += `
+                    <div class="table-row">
+                        <div class="table-cell" style="font-family: monospace; font-weight: 600; color: var(--primary);">#${t.transaction_id}</div>
+                        <div class="table-cell">₹${t.amount}</div>
+                        <div class="table-cell">${t.location || 'Online'}</div>
+                        <div class="table-cell"><span class="badge ${badgeClass}">${t.status}</span></div>
+                        <div class="table-cell text-center" style="font-weight: 600;">${t.risk_score}%</div>
+                        <div class="table-cell text-center">
+                            <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="showExplanation(${t.id})">
+                                <i class="fas fa-search"></i> Explain
+                            </button>
+                        </div>
+                    </div>`;
             });
         }
 
