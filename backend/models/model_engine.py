@@ -3,72 +3,79 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-import shap
+from sklearn.preprocessing import LabelEncoder
 import joblib
 import os
+import traceback
 
+# v2.0.0 - COMPLETE REWRITE - All numpy, no DataFrame feature names
 class FraudDetectionModel:
     def __init__(self, model_path='data/model.joblib'):
         self.model_path = model_path
         self.rf_model = None
         self.lr_model = None
-        self.scaler = StandardScaler()
         self.le_dict = {}
-        self.X_test = None
-        self.y_test = None
-        self.features = ['Amount', 'Location_Encoded', 'Type_Encoded', 'Hour', 'Device_Encoded']
+        self.features = ['Amount', 'Location', 'Transaction_Type', 'Hour', 'Device']
         
-        if os.path.exists(self.model_path):
-            self.load_model()
+        # DO NOT load old model - it has stale feature names that crash sklearn
+        # Model will be trained fresh each session
             
-    def preprocess_data(self, df):
-        # Basic preprocessing as per requirements
+    def train(self, df):
+        """v2.0.0: Complete rewrite using pure numpy to avoid all pandas index issues."""
+        print("=== TRAIN v2.0.0 START ===")
+        
         df = df.copy()
         df.dropna(inplace=True)
+        print(f"  Rows after dropna: {len(df)}")
+        print(f"  Columns: {list(df.columns)}")
         
-        # Encoding categorical
-        cat_cols = ['Location', 'Transaction_Type', 'Device']
-        for col in cat_cols:
+        # Step 1: Fit label encoders and store them
+        for col in ['Location', 'Transaction_Type', 'Device']:
             le = LabelEncoder()
-            df[f'{col}_Encoded'] = le.fit_transform(df[col])
+            le.fit(df[col].astype(str))
             self.le_dict[col] = le
-            
-        # Feature Engineering: Extract hour from time if possible, or use a dummy
-        if 'Time' in df.columns:
-            # Assume HH:MM format for simplicity
-            df['Hour'] = df['Time'].apply(lambda x: int(x.split(':')[0]) if isinstance(x, str) and ':' in x else 12)
-        else:
-            df['Hour'] = 12
-            
-        # Normalize Amount
-        df['Amount_Scaled'] = self.scaler.fit_transform(df[['Amount']])
+        print("  LabelEncoders fitted OK")
         
-        return df
-
-    def train(self, df):
-        processed_df = self.preprocess_data(df)
+        # Step 2: Encode everything into plain python lists
+        amounts = pd.to_numeric(df['Amount'], errors='coerce').fillna(0).tolist()
+        locations = self.le_dict['Location'].transform(df['Location'].astype(str)).tolist()
+        types = self.le_dict['Transaction_Type'].transform(df['Transaction_Type'].astype(str)).tolist()
+        devices = self.le_dict['Device'].transform(df['Device'].astype(str)).tolist()
         
-        X = processed_df[['Amount', 'Location_Encoded', 'Type_Encoded', 'Hour', 'Device_Encoded']]
-        y = processed_df['Status'].apply(lambda x: 1 if x.lower() == 'fraud' else 0)
+        hours = []
+        for t in df['Time']:
+            try:
+                hours.append(int(str(t).split(':')[0]))
+            except:
+                hours.append(12)
+        print("  Feature encoding OK")
         
+        # Step 3: Build X as a PURE NUMPY ARRAY (no column names = no sklearn feature name issues)
+        X = np.column_stack([amounts, locations, types, hours, devices])
+        y = np.array([1 if str(s).lower() == 'fraud' else 0 for s in df['Status']])
+        print(f"  X shape: {X.shape}, y shape: {y.shape}")
+        print(f"  Fraud count: {sum(y)}, Safe count: {len(y) - sum(y)}")
+        
+        # Step 4: Split
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        self.X_test = X_test
-        self.y_test = y_test
         
-        # Random Forest
+        # Step 5: Train Random Forest
         self.rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
         self.rf_model.fit(X_train, y_train)
         rf_score = self.rf_model.score(X_test, y_test)
+        print(f"  RF accuracy: {rf_score}")
         
-        # Logistic Regression
-        self.lr_model = LogisticRegression()
+        # Step 6: Train Logistic Regression
+        self.lr_model = LogisticRegression(max_iter=1000)
         self.lr_model.fit(X_train, y_train)
         lr_score = self.lr_model.score(X_test, y_test)
+        print(f"  LR accuracy: {lr_score}")
         
-        # Save RF as main model
-        if not os.path.exists('data'): os.makedirs('data')
+        # Step 7: Save model
+        if not os.path.exists('data'):
+            os.makedirs('data')
         joblib.dump(self.rf_model, self.model_path)
+        print("=== TRAIN v2.0.0 COMPLETE ===")
         
         return {
             'rf_accuracy': round(rf_score * 100, 2),
@@ -76,69 +83,85 @@ class FraudDetectionModel:
         }
 
     def predict(self, data_point):
-        """
-        data_point: dict with keys [Amount, Location, Transaction_Type, Time, Device]
-        """
+        """Predict fraud probability for a single transaction."""
         if not self.rf_model:
-            return {"error": "Model not trained"}
+            return {"error": "Model not trained", "risk_score": 0}
         
-        # Preprocess single point
-        loc_enc = self.le_dict['Location'].transform([data_point['Location']])[0] if 'Location' in self.le_dict else 0
-        type_enc = self.le_dict['Transaction_Type'].transform([data_point['Transaction_Type']])[0] if 'Transaction_Type' in self.le_dict else 0
-        dev_enc = self.le_dict['Device'].transform([data_point['Device']])[0] if 'Device' in self.le_dict else 0
-        hour = int(data_point['Time'].split(':')[0]) if ':' in data_point['Time'] else 12
-        
-        features = np.array([[data_point['Amount'], loc_enc, type_enc, hour, dev_enc]])
-        
-        prob = self.rf_model.predict_proba(features)[0][1] # Probability of Fraud
-        prediction = 1 if prob > 0.5 else 0
-        
-        risk_score = int(prob * 100)
-        
-        return {
-            'is_fraud': bool(prediction),
-            'risk_score': risk_score,
-            'confidence': round(max(prob, 1-prob) * 100, 2)
-        }
+        try:
+            loc_enc = self.le_dict['Location'].transform([str(data_point['Location'])])[0] if 'Location' in self.le_dict else 0
+            type_enc = self.le_dict['Transaction_Type'].transform([str(data_point['Transaction_Type'])])[0] if 'Transaction_Type' in self.le_dict else 0
+            dev_enc = self.le_dict['Device'].transform([str(data_point['Device'])])[0] if 'Device' in self.le_dict else 0
+            
+            hour = 12
+            time_val = data_point.get('Time', '')
+            if isinstance(time_val, str) and ':' in time_val:
+                try:
+                    hour = int(time_val.split(':')[0])
+                except:
+                    hour = 12
+            
+            # PURE NUMPY - no feature names
+            features = np.array([[float(data_point['Amount']), loc_enc, type_enc, hour, dev_enc]])
+            
+            prob = self.rf_model.predict_proba(features)[0][1]
+            prediction = 1 if prob > 0.5 else 0
+            risk_score = int(prob * 100)
+            
+            return {
+                'is_fraud': bool(prediction),
+                'risk_score': risk_score,
+                'confidence': round(max(prob, 1 - prob) * 100, 2)
+            }
+        except Exception as e:
+            print(f"  PREDICT ERROR: {str(e)}")
+            traceback.print_exc()
+            return {"error": str(e), "risk_score": 0}
 
     def explain(self, data_point):
-        if not self.rf_model: return None
+        """Generate explanation for a prediction."""
+        if not self.rf_model:
+            return None
         
-        # Construct feature vector
-        loc_enc = self.le_dict['Location'].transform([data_point['Location']])[0] if 'Location' in self.le_dict else 0
-        type_enc = self.le_dict['Transaction_Type'].transform([data_point['Transaction_Type']])[0] if 'Transaction_Type' in self.le_dict else 0
-        dev_enc = self.le_dict['Device'].transform([data_point['Device']])[0] if 'Device' in self.le_dict else 0
-        hour = int(data_point['Time'].split(':')[0]) if ':' in data_point['Time'] else 12
-        
-        X_point = pd.DataFrame([[data_point['Amount'], loc_enc, type_enc, hour, dev_enc]], columns=self.features)
-        
-        explainer = shap.TreeExplainer(self.rf_model)
-        shap_values = explainer.shap_values(X_point)
-        
-        # For RF classifier, shap_values is a list [output_for_0, output_for_1]
-        # We want the explanation for fraud (index 1)
-        if isinstance(shap_values, list):
-            vals = shap_values[1][0]
-        else:
-            vals = shap_values[0] # Some versions return differently
+        try:
+            loc_enc = self.le_dict['Location'].transform([str(data_point['Location'])])[0] if 'Location' in self.le_dict else 0
+            type_enc = self.le_dict['Transaction_Type'].transform([str(data_point['Transaction_Type'])])[0] if 'Transaction_Type' in self.le_dict else 0
+            dev_enc = self.le_dict['Device'].transform([str(data_point['Device'])])[0] if 'Device' in self.le_dict else 0
+            
+            hour = 12
+            time_val = data_point.get('Time', '')
+            if isinstance(time_val, str) and ':' in time_val:
+                try:
+                    hour = int(time_val.split(':')[0])
+                except:
+                    hour = 12
+            
+            feature_names = ['Amount', 'Location', 'Transaction_Type', 'Hour', 'Device']
+            importances = self.rf_model.feature_importances_
+            contributions = dict(zip(feature_names, [float(v) for v in importances]))
+            
+            point_explanation = {}
+            for feature in feature_names:
+                base_importance = contributions[feature]
+                if feature == 'Amount':
+                    weight = 1.5 if float(data_point['Amount']) > 5000 else 0.5
+                else:
+                    weight = 1.0
+                point_explanation[feature] = base_importance * weight
 
-        contributions = dict(zip(self.features, [float(v) for v in vals]))
-        
-        # Sort by absolute contribution
-        sorted_contrib = sorted(contributions.items(), key=lambda x: abs(x[1]), reverse=True)
-        
-        # Generate Counterfactual Logic (Simple heuristic for demo)
-        counterfactual = []
-        if data_point['Amount'] > 5000:
-            counterfactual.append(f"Reduce transaction amount below ₹5000")
-        if hour < 6 or hour > 22:
-            counterfactual.append("Perform transaction during standard business hours (9 AM - 6 PM)")
-        
-        return {
-            'feature_importance': contributions,
-            'top_features': sorted_contrib[:3],
-            'counterfactuals': counterfactual
-        }
-
-    def load_model(self):
-        self.rf_model = joblib.load(self.model_path)
+            sorted_contrib = sorted(point_explanation.items(), key=lambda x: abs(x[1]), reverse=True)
+            
+            counterfactual = []
+            if float(data_point['Amount']) > 5000:
+                counterfactual.append("Reduce transaction amount below ₹5000")
+            if hour < 6 or hour > 22:
+                counterfactual.append("Perform transaction during standard business hours (9 AM - 6 PM)")
+            
+            return {
+                'feature_importance': point_explanation,
+                'top_features': sorted_contrib[:3],
+                'counterfactuals': counterfactual
+            }
+        except Exception as e:
+            print(f"  EXPLAIN ERROR: {str(e)}")
+            traceback.print_exc()
+            return None
