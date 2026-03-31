@@ -22,7 +22,6 @@ class FraudDetectionModel:
             self.load_model()
             
     def preprocess_data(self, df):
-        # Basic preprocessing as per requirements
         df = df.copy()
         df.dropna(inplace=True)
         
@@ -32,21 +31,17 @@ class FraudDetectionModel:
         df['Device_Encoded'] = LabelEncoder().fit_transform(df['Device'])
         
         # Store for future single-point predictions
-        for col, col_map in [('Location', 'Location_Encoded'), ('Transaction_Type', 'Type_Encoded'), ('Device', 'Device_Encoded')]:
+        for col in ['Location', 'Transaction_Type', 'Device']:
             le = LabelEncoder()
             le.fit(df[col])
             self.le_dict[col] = le
             
-        # Feature Engineering: Extract hour from time if possible, or use a dummy
+        # Feature Engineering
         if 'Time' in df.columns:
-            # Assume HH:MM format for simplicity
             df['Hour'] = df['Time'].apply(lambda x: int(x.split(':')[0]) if isinstance(x, str) and ':' in x else 12)
         else:
             df['Hour'] = 12
             
-        # Normalize Amount
-        df['Amount_Scaled'] = self.scaler.fit_transform(df[['Amount']])
-        
         return df
 
     def train(self, df):
