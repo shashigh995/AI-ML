@@ -28,10 +28,14 @@ class FraudDetectionModel:
         df.dropna(inplace=True)
         
         # Encoding categorical
-        cat_cols = ['Location', 'Transaction_Type', 'Device']
-        for col in cat_cols:
+        df['Location_Encoded'] = LabelEncoder().fit_transform(df['Location'])
+        df['Type_Encoded'] = LabelEncoder().fit_transform(df['Transaction_Type'])
+        df['Device_Encoded'] = LabelEncoder().fit_transform(df['Device'])
+        
+        # Store for future single-point predictions
+        for col, col_map in [('Location', 'Location_Encoded'), ('Transaction_Type', 'Type_Encoded'), ('Device', 'Device_Encoded')]:
             le = LabelEncoder()
-            df[f'{col}_Encoded'] = le.fit_transform(df[col])
+            le.fit(df[col])
             self.le_dict[col] = le
             
         # Feature Engineering: Extract hour from time if possible, or use a dummy
