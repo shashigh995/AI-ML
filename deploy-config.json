@@ -6,7 +6,7 @@
     "database_host": "db.ryfqhotcyfgdzginfmqw.supabase.co",
     "port": 5432,
     "user": "postgres",
-    "database_url_template": "postgresql://postgres.sbp_fa373b0d23f5f9e529f51a4e1d445d1baa947c84@db.ryfqhotcyfgdzginfmqw.supabase.co:5432/postgres"
+    "database_url_template": "postgresql://postgres.[YOUR_PASSWORD]@db.ryfqhotcyfgdzginfmqw.supabase.co:5432/postgres"
   },
   "render_backend": {
     "environment_variables": [
