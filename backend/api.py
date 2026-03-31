@@ -148,17 +148,24 @@ def train_model():
 def explain_transaction(id):
     t = Transaction.query.get(id)
     if not t: return jsonify({'error': 'Not found'})
+    
     data_point = {'Amount': t.amount, 'Location': t.location, 'Transaction_Type': t.transaction_type, 'Time': t.time, 'Device': t.device}
     explanation = model_engine.explain(data_point)
-    if not explanation: return jsonify({'error': 'Model not trained'})
-    return jsonify({
+    
+    response = {
         'transaction_id': t.transaction_id,
         'amount': t.amount,
         'location': t.location,
         'status': t.status,
-        'risk_score': t.risk_score,
-        'explanation': explanation
-    })
+        'risk_score': t.risk_score
+    }
+    
+    if not explanation:
+        response['error'] = 'Model not trained'
+    else:
+        response['explanation'] = explanation
+        
+    return jsonify(response)
 
 if __name__ == '__main__':
     app.run(debug=True, port=int(os.environ.get('PORT', 5000)))

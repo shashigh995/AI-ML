@@ -234,22 +234,32 @@
                 badge.textContent = data.status || 'Safe';
                 badge.className = `badge ${data.risk_score <= 30 ? 'badge-safe' : (data.risk_score <= 70 ? 'badge-medium' : 'badge-danger')}`;
 
-                document.getElementById('predictionText').textContent = data.explanation.summary || 'AI prediction based on transaction history and location patterns.';
+                if (data.error) {
+                    document.getElementById('predictionText').innerHTML = `<span style="color: var(--warning)"><i class="fas fa-exclamation-triangle"></i> ${data.error}. Please click "Re-Train Model" to initialize AI insights.</span>`;
+                    document.getElementById('featureList').innerHTML = '';
+                    document.getElementById('counterfactualText').textContent = 'Insights will appear after training.';
+                    return;
+                }
+
+                document.getElementById('predictionText').textContent = (data.explanation && data.explanation.summary) || 'AI prediction based on transaction history and location patterns.';
                 
                 const featureList = document.getElementById('featureList'); 
                 featureList.innerHTML = '<p style="margin-top: 1rem; color: var(--text-main); font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">Key Risk Drivers:</p>';
-                data.explanation.top_features.forEach(f => { 
-                    const isPositive = f[1] > 0;
-                    featureList.innerHTML += `
-                        <div class="feature-item">
-                            <span style="color: var(--text-secondary)">${f[0]}</span>
-                            <span style="color: ${isPositive ? 'var(--danger)' : 'var(--success)'}; font-weight: 600;">
-                                <i class="fas ${isPositive ? 'fa-arrow-up' : 'fa-arrow-down'}"></i> ${isPositive ? 'Increases Risk' : 'Reduces Risk'}
-                            </span>
-                        </div>`; 
-                });
+                
+                if (data.explanation && data.explanation.top_features) {
+                    data.explanation.top_features.forEach(f => { 
+                        const isPositive = f[1] > 0;
+                        featureList.innerHTML += `
+                            <div class="feature-item">
+                                <span style="color: var(--text-secondary)">${f[0]}</span>
+                                <span style="color: ${isPositive ? 'var(--danger)' : 'var(--success)'}; font-weight: 600;">
+                                    <i class="fas ${isPositive ? 'fa-arrow-up' : 'fa-arrow-down'}"></i> ${isPositive ? 'Increases Risk' : 'Reduces Risk'}
+                                </span>
+                            </div>`; 
+                    });
+                }
 
-                document.getElementById('counterfactualText').innerHTML = data.explanation.counterfactuals.length > 0 
+                document.getElementById('counterfactualText').innerHTML = (data.explanation && data.explanation.counterfactuals && data.explanation.counterfactuals.length > 0)
                   ? data.explanation.counterfactuals.map(c => `• ${c}`).join('<br>')
                   : 'No changes needed for safety.';
 
