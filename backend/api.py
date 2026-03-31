@@ -132,6 +132,9 @@ def train_model():
             })
         
         df = pd.DataFrame(data)
+        # Diagnostic Log
+        print(f"COLUMNS FOUND: {list(df.columns)}")
+        
         if len(df['Status'].unique()) < 2:
             return jsonify({'error': 'Dataset must contain both Fraud and Safe examples'})
         
@@ -148,6 +151,7 @@ def train_model():
         
         return jsonify({
             'success': True,
+            'version': '1.0.4 RELOADED',
             'message': 'Model trained and risk scores updated!',
             'accuracies': results
         })
