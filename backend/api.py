@@ -73,6 +73,17 @@ def get_transactions():
         })
     return jsonify(results)
 
+@app.route('/api/transactions/delete', methods=['POST'])
+def delete_transactions():
+    data = request.get_json()
+    ids = data.get('ids', [])
+    if not ids:
+        return jsonify({'error': 'No IDs provided'})
+    
+    deleted = Transaction.query.filter(Transaction.id.in_(ids)).delete(synchronize_session=False)
+    db.session.commit()
+    return jsonify({'success': True, 'count': deleted})
+
 @app.route('/api/upload', methods=['POST'])
 def upload_csv():
     if 'file' not in request.files:

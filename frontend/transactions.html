@@ -43,6 +43,7 @@
         <section class="glass animate-fade" style="padding: 0; overflow: hidden;">
             <div class="table-container">
                 <div class="table-header">
+                    <div><input type="checkbox" class="custom-checkbox" id="selectAll" onclick="toggleSelectAll(this)"></div>
                     <div>TX ID</div>
                     <div>AMOUNT</div>
                     <div>LOCATION</div>
@@ -51,6 +52,13 @@
                     <div class="text-center">ACTION</div>
                 </div>
                 <div id="transactionTable"></div>
+            </div>
+            
+            <div id="bulkActionBar" class="bulk-actions glass">
+                <div style="color: var(--text-main); font-weight: 600;"><span id="selectedCount">0</span> Selected</div>
+                <div class="btn btn-primary" style="background: var(--danger); border: none;" onclick="deleteSelected()">
+                    <i class="fas fa-trash"></i> Delete Transactions
+                </div>
             </div>
         </section>
     </main>
@@ -113,6 +121,7 @@
                 const badgeClass = t.risk_score <= 30 ? 'badge-safe' : (t.risk_score <= 70 ? 'badge-medium' : 'badge-danger');
                 table.innerHTML += `
                     <div class="table-row">
+                        <div><input type="checkbox" class="custom-checkbox row-checkbox" value="${t.id}" onclick="updateSelection()"></div>
                         <div class="table-cell" style="font-family: monospace; font-weight: 600; color: var(--primary);">#${t.transaction_id}</div>
                         <div class="table-cell">₹${t.amount}</div>
                         <div class="table-cell">${t.location || 'Online'}</div>
@@ -125,6 +134,41 @@
                         </div>
                     </div>`;
             });
+        }
+
+        function toggleSelectAll(master) {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = master.checked);
+            updateSelection();
+        }
+
+        function updateSelection() {
+            const selected = document.querySelectorAll('.row-checkbox:checked').length;
+            const bar = document.getElementById('bulkActionBar');
+            document.getElementById('selectedCount').textContent = selected;
+            
+            if (selected > 0) bar.classList.add('show');
+            else bar.classList.remove('show');
+        }
+
+        async function deleteSelected() {
+            const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (!confirm(`Are you sure you want to delete ${ids.length} transactions?`)) return;
+
+            try {
+                const res = await fetch(`${API_URL}/transactions/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('selectAll').checked = false;
+                    loadTransactions();
+                    updateSelection();
+                }
+            } catch (err) {
+                alert('Deletion failed');
+            }
         }
 
         async function trainAndRefresh() {
