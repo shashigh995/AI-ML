@@ -46,6 +46,16 @@
                 </div>
             </div>
         </section>
+    <div id="uploadOverlay" class="training-overlay">
+        <div class="loader-container">
+            <div class="training-status" id="uploadStatusText">Uploading Data...</div>
+            <p style="color: var(--text-secondary);">Syncing with Supabase Production Server</p>
+            <div class="progress-bar-bg">
+                <div id="uploadProgressFill" class="progress-bar-fill"></div>
+            </div>
+            <div style="font-size: 0.9rem; color: var(--accent-cyan);" id="uploadStep">Processing CSV...</div>
+        </div>
+    </div>
     </main>
 
     <script>
@@ -56,13 +66,47 @@
             if (file) { document.getElementById('fileName').textContent = file.name; statusBox.style.display = 'block'; }
         });
         document.getElementById('startUploadBtn').addEventListener('click', async () => {
+            const overlay = document.getElementById('uploadOverlay');
+            const fill = document.getElementById('uploadProgressFill');
+            const status = document.getElementById('uploadStatusText');
+            const step = document.getElementById('uploadStep');
+            
             const file = input.files[0];
             const formData = new FormData(); formData.append('file', file);
-            const btn = document.getElementById('startUploadBtn'); btn.innerHTML = 'Processing...';
-            const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
-            const data = await res.json();
-            if (data.success) { alert(`Successfully uploaded ${data.count} transactions!`); window.location.href = 'transactions.html'; }
-            btn.innerHTML = 'Start Upload';
+            
+            overlay.style.display = 'flex';
+            
+            // Artificial progress for better UX
+            let p = 0;
+            const interval = setInterval(() => {
+                if (p < 90) {
+                    p += (95 - p) * 0.1;
+                    fill.style.width = p + '%';
+                    if (p > 30) { status.textContent = 'Parsing Transactions...'; step.textContent = 'Formatting records'; }
+                    if (p > 60) { status.textContent = 'Saving to Database...'; step.textContent = 'Bulk inserting rows'; }
+                }
+            }, 500);
+
+            try {
+                const res = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                clearInterval(interval);
+                fill.style.width = '100%';
+                status.textContent = 'Upload Successful!';
+                step.textContent = `Imported ${data.count} records.`;
+                
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    if (data.success) {
+                        window.location.href = 'transactions.html';
+                    }
+                }, 1500);
+            } catch (err) {
+                clearInterval(interval);
+                overlay.style.display = 'none';
+                alert('Upload failed. Please check your CSV format.');
+            }
         });
     </script>
 </body>

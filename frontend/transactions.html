@@ -42,23 +42,43 @@
 
         <section class="glass animate-fade" style="overflow-x: auto;">
             <table class="table-container">
-                <tr class="table-header"><th>TX ID</th><th>AMOUNT</th><th>LOCATION</th><th>PREDICTION</th><th>RISK</th><th>ACTION</th></tr>
+                <thead><tr class="table-header"><th class="text-center">TX ID</th><th>AMOUNT</th><th>LOCATION</th><th>PREDICTION</th><th class="text-center">RISK</th><th class="text-center">ACTION</th></tr></thead>
                 <tbody id="transactionTable"></tbody>
             </table>
         </section>
     </main>
 
     <div id="explanationModal" class="modal">
-        <div class="modal-content glass"><span style="position: absolute; top: 1rem; right: 1.5rem; cursor: pointer; color: var(--text-secondary);" onclick="closeModal()"><i class="fas fa-times fa-lg"></i></span>
-            <div id="modalLoading" style="text-align: center; padding: 2rem;"><i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--primary);"></i><p style="margin-top: 1rem;">Analyzing with SHAP AI...</p></div>
+        <div class="modal-content">
+            <div id="modalLoading" style="text-align: center; padding: 4rem;">
+                <i class="fas fa-circle-notch fa-spin fa-3x" style="color: var(--primary);"></i>
+                <p style="margin-top: 1.5rem; color: var(--text-secondary);">Analyzing with SHAP AI...</p>
+            </div>
+            
             <div id="modalData" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
-                    <div><h2 id="modalTxID" style="color: var(--primary);">TX1000</h2><p id="modalTxDetails">₹0 | Unknown</p></div>
+                <div class="modal-header">
+                    <div>
+                        <h2 id="modalTxID" style="color: var(--primary); margin-bottom: 5px;">Transaction #91717bb3</h2>
+                        <div id="modalTxDetails" style="color: var(--text-secondary); font-size: 0.95rem;">₹250 | Mumbai</div>
+                    </div>
                     <div id="modalBadge" class="badge">Safe</div>
+                    <span style="cursor: pointer; color: var(--text-secondary); padding: 5px;" onclick="closeModal()"><i class="fas fa-times fa-lg"></i></span>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                    <div><h3>Prediction Explanation</h3><p id="predictionText" style="color: var(--text-secondary);"></p><div id="featureList"></div></div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 12px;"><h3 style="color: var(--accent-gold);">Counterfactuals</h3><p id="counterfactualText" style="color: var(--text-secondary);"></p></div>
+                
+                <div class="modal-body">
+                    <div>
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-brain" style="color: var(--primary); margin-right: 8px;"></i> AI Explanation</h3>
+                        <p id="predictionText" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.6;"></p>
+                        <div id="featureList"></div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-magic" style="color: var(--accent-gold); margin-right: 8px;"></i> Counterfactuals</h3>
+                        <div class="counterfactual-box">
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">"How to make this transaction safer?"</p>
+                            <div id="counterfactualText" style="color: var(--text-main); font-size: 0.9rem; line-height: 1.7;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -132,16 +152,47 @@
         }
         async function showExplanation(id) {
             const modal = document.getElementById('explanationModal');
-            document.getElementById('modalLoading').style.display = 'block'; document.getElementById('modalData').style.display = 'none';
+            document.getElementById('modalLoading').style.display = 'block'; 
+            document.getElementById('modalData').style.display = 'none';
             modal.style.display = 'flex';
-            const res = await fetch(`${API_URL}/explain/${id}`);
-            const data = await res.json();
-            document.getElementById('modalLoading').style.display = 'none'; document.getElementById('modalData').style.display = 'block';
-            document.getElementById('modalTxID').textContent = 'Transaction #' + data.transaction_id;
-            document.getElementById('modalTxDetails').textContent = `₹${data.amount} | ${data.location}`;
-            const featureList = document.getElementById('featureList'); featureList.innerHTML = '';
-            data.explanation.top_features.forEach(f => { featureList.innerHTML += `<div>${f[0]}: ${f[1] > 0 ? 'Adds Risk' : 'Reduces Risk'}</div>`; });
-            document.getElementById('counterfactualText').innerHTML = data.explanation.counterfactuals.join('<br>');
+
+            try {
+                const res = await fetch(`${API_URL}/explain/${id}`);
+                const data = await res.json();
+                
+                document.getElementById('modalLoading').style.display = 'none'; 
+                document.getElementById('modalData').style.display = 'block';
+
+                document.getElementById('modalTxID').textContent = 'Transaction #' + (data.transaction_id || '91717bb3');
+                document.getElementById('modalTxDetails').textContent = `₹${data.amount || 0} | ${data.location || 'Online'}`;
+                
+                const badge = document.getElementById('modalBadge');
+                badge.textContent = data.status || 'Safe';
+                badge.className = `badge ${data.risk_score <= 30 ? 'badge-safe' : (data.risk_score <= 70 ? 'badge-medium' : 'badge-danger')}`;
+
+                document.getElementById('predictionText').textContent = data.explanation.summary || 'AI prediction based on transaction history and location patterns.';
+                
+                const featureList = document.getElementById('featureList'); 
+                featureList.innerHTML = '<p style="margin-top: 1rem; color: var(--text-main); font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">Key Risk Drivers:</p>';
+                data.explanation.top_features.forEach(f => { 
+                    const isPositive = f[1] > 0;
+                    featureList.innerHTML += `
+                        <div class="feature-item">
+                            <span style="color: var(--text-secondary)">${f[0]}</span>
+                            <span style="color: ${isPositive ? 'var(--danger)' : 'var(--success)'}; font-weight: 600;">
+                                <i class="fas ${isPositive ? 'fa-arrow-up' : 'fa-arrow-down'}"></i> ${isPositive ? 'Increases Risk' : 'Reduces Risk'}
+                            </span>
+                        </div>`; 
+                });
+
+                document.getElementById('counterfactualText').innerHTML = data.explanation.counterfactuals.length > 0 
+                  ? data.explanation.counterfactuals.map(c => `• ${c}`).join('<br>')
+                  : 'No changes needed for safety.';
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('modalLoading').innerHTML = '<p style="color: var(--danger)">Failed to load AI insights. Check console.</p>';
+            }
         }
         function closeModal() { document.getElementById('explanationModal').style.display = 'none'; }
         window.onload = loadTransactions;
