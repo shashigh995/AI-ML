@@ -192,11 +192,17 @@ body {
     align-items: center;
     gap: 1.5rem;
     z-index: 1000;
-    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .bulk-actions.show {
     transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Custom Checkbox CSS */
