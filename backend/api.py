@@ -151,7 +151,7 @@ def train_model():
         
         return jsonify({
             'success': True,
-            'version': '1.0.4 RELOADED',
+            'version': '1.0.5 NUCLEAR',
             'message': 'Model trained and risk scores updated!',
             'accuracies': results
         })

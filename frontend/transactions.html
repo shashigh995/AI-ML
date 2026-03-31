@@ -208,7 +208,9 @@
                 console.log('Response Body:', data);
 
                 if (data.success) {
-                    alert('Training complete! Scores updated.');
+                    const v = data.version || '1.0.5';
+                    console.log(`🎉 SUCCESS: AI Engine ${v} is now active and guarding your transactions!`);
+                    alert(`Training complete! AI Engine ${v} is now active and all risk scores have been updated.`);
                     location.reload();
                 } else {
                     console.error('Training Logic Error:', data.error);
