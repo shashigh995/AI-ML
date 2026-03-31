@@ -199,22 +199,24 @@
 
             try {
                 const res = await fetch(`${API_URL}/train`, { method: 'POST' });
+                
+                // Detailed logging for troubleshooting
+                console.log('--- Training Response Received ---');
+                console.log('Status Code:', res.status);
+                
                 const data = await res.json();
-                
-                clearInterval(interval);
-                fill.style.width = '100%';
-                status.textContent = 'Training Complete!';
-                step.textContent = `Model Accuracy: ${data.accuracies.rf_accuracy}%`;
-                
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                    fill.style.width = '0%';
-                    if (data.success) {
-                        loadTransactions();
-                    }
-                }, 1500);
+                console.log('Response Body:', data);
+
+                if (data.success) {
+                    alert('Training complete! Scores updated.');
+                    location.reload();
+                } else {
+                    console.error('Training Logic Error:', data.error);
+                    alert(`Training failed: ${data.error}`);
+                }
             } catch (err) {
-                clearInterval(interval);
+                console.error('CRITICAL ERROR DURING TRAINING:', err);
+                alert('Training failed. Open your browser console (F12) to see the detailed error report.');
                 overlay.style.display = 'none';
                 alert('Training failed. Check backend logs.');
             }
