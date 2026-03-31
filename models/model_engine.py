@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 import joblib
 import os
 
+# v1.0.5 - NUCLEAR RESET - Naming fix forced
 class FraudDetectionModel:
     def __init__(self, model_path='data/model.joblib'):
         self.model_path = model_path
@@ -45,10 +46,22 @@ class FraudDetectionModel:
         return df
 
     def train(self, df):
-        processed_df = self.preprocess_data(df)
+        # NUCLEAR RESET: Encode everything here to be 100% sure
+        df = df.copy()
+        df.dropna(inplace=True)
         
-        X = processed_df[['Amount', 'Location_Encoded', 'Type_Encoded', 'Hour', 'Device_Encoded']]
-        y = processed_df['Status'].apply(lambda x: 1 if x.lower() == 'fraud' else 0)
+        df['Amount_Norm'] = df['Amount'] # Simplified
+        df['Location_Encoded'] = LabelEncoder().fit_transform(df['Location'])
+        df['Type_Encoded'] = LabelEncoder().fit_transform(df['Transaction_Type'])
+        df['Device_Encoded'] = LabelEncoder().fit_transform(df['Device'])
+        
+        if 'Time' in df.columns:
+            df['Hour'] = df['Time'].apply(lambda x: int(x.split(':')[0]) if isinstance(x, str) and ':' in x else 12)
+        else:
+            df['Hour'] = 12
+            
+        X = df[['Amount', 'Location_Encoded', 'Type_Encoded', 'Hour', 'Device_Encoded']]
+        y = df['Status'].apply(lambda x: 1 if x.lower() == 'fraud' else 0)
         
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         self.X_test = X_test
