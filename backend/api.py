@@ -13,7 +13,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'super-secret-key-for-ai-finance')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///finance_ai.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-CORS(app)
+# Explicit CORS allowing everything for production stability
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 init_db(app)
 
 model_engine = FraudDetectionModel()
