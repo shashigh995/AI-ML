@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Dataset | X-Finance AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            padding: 3rem;
+            text-align: center;
+            border-radius: 20px;
+            margin-top: 2rem;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        .upload-area:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+        .upload-area i { font-size: 3rem; color: var(--primary); margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="sidebar glass">
+        <div class="logo"><i class="fas fa-shield-alt"></i> X-Finance</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/dashboard" class="nav-link"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li class="nav-item"><a href="/transactions-page" class="nav-link"><i class="fas fa-exchange-alt"></i> Transactions</a></li>
+            <li class="nav-item"><a href="/upload-page" class="nav-link active"><i class="fas fa-upload"></i> Upload Data</a></li>
+        </ul>
+        <div style="margin-top: auto;"><a href="/logout" class="nav-link" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+    </div>
+
+    <main class="main-content">
+        <header class="header-flex">
+            <div>
+                <h1 class="animate-fade">Admin Control Panel</h1>
+                <p style="color: var(--text-secondary);">Manage datasets and model training</p>
+            </div>
+        </header>
+
+        <section class="glass animate-fade" style="padding: 2.5rem;">
+            <h2>Upload Transaction Logs</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Upload a CSV file containing transaction data for processing and model training.</p>
+            
+            <div class="upload-area" id="dropArea" onclick="document.getElementById('csvInput').click()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Drag & Drop CSV here</h3>
+                <p>or click to browse files</p>
+                <input type="file" id="csvInput" style="display: none;" accept=".csv">
+            </div>
+
+            <div id="uploadStatus" style="margin-top: 2rem; display: none;" class="glass">
+                <div style="padding: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <i class="fas fa-file-csv fa-2x" style="color: var(--success);"></i>
+                        <div>
+                            <strong id="fileName">Sample.csv</strong>
+                            <p id="fileSize">2.4 MB</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="startUploadBtn">Start Upload</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 3rem;">
+                <h3 style="margin-bottom: 1rem;">Admin Actions</h3>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="/data/sample_data.csv" download class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);"><i class="fas fa-download"></i> Download Sample CSV</a>
+                    <button class="btn" id="deleteDataBtn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger);"><i class="fas fa-trash-alt"></i> Clean Database</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const input = document.getElementById('csvInput');
+        const statusBox = document.getElementById('uploadStatus');
+        
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+                statusBox.style.display = 'block';
+            }
+        });
+
+        document.getElementById('startUploadBtn').addEventListener('click', async () => {
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const btn = document.getElementById('startUploadBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert(`Successfully uploaded ${data.count} transactions!`);
+                window.location.href = '/transactions-page';
+            } else {
+                alert('Upload Failed: ' + data.error);
+                btn.innerHTML = 'Start Upload';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

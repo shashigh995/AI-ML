@@ -1,0 +1,21 @@
+Transaction_ID,User_ID,Amount,Location,Transaction_Type,Time,Device,Status
+TX1001,U001,12000,Bangalore,UPI,10:30,Mobile,Safe
+TX1002,U002,55000,New York,Credit Card,02:15,Desktop,Fraud
+TX1003,U001,500,Bangalore,UPI,14:45,Mobile,Safe
+TX1004,U003,82000,London,Net Banking,23:50,Laptop,Fraud
+TX1005,U004,2500,Mumbai,Debit Card,11:20,Mobile,Safe
+TX1006,U002,1200,New York,UPI,09:10,Mobile,Safe
+TX1007,U005,68000,Dubai,Credit Card,03:30,Unknown Device,Fraud
+TX1008,U001,4500,Bangalore,UPI,16:00,Mobile,Safe
+TX1009,U006,120000,Russia,Wire Transfer,01:10,Generic PC,Fraud
+TX1010,U003,3200,London,UPI,19:45,Laptop,Safe
+TX1011,U004,150,Mumbai,UPI,12:00,Mobile,Safe
+TX1012,U005,95000,Mumbai,UPI,15:30,Mobile,Fraud
+TX1013,U001,1200,Bangalore,UPI,14:45,Mobile,Safe
+TX1014,U002,800,New York,UPI,09:10,Mobile,Safe
+TX1015,U004,2500,Mumbai,Debit Card,11:20,Mobile,Safe
+TX1016,U006,1200,Russia,UPI,01:10,Generic PC,Safe
+TX1017,U003,120000,London,Wire Transfer,01:10,Generic PC,Fraud
+TX1018,U001,120,Bangalore,UPI,14:45,Mobile,Safe
+TX1019,U002,12,New York,UPI,09:10,Mobile,Safe
+TX1020,U004,250,Mumbai,Debit Card,11:20,Mobile,Safe

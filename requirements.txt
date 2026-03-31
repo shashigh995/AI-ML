@@ -1,0 +1,12 @@
+flask
+flask-cors
+flask-sqlalchemy
+pandas
+numpy
+scikit-learn
+shap
+matplotlib
+seaborn
+python-dotenv
+joblib
+sqlite3

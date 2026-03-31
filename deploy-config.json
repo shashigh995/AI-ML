@@ -1,0 +1,26 @@
+{
+  "project_name": "Finance-AI-Fraud-Detection",
+  "supabase": {
+    "project_id": "ryfqhotcyfgdzginfmqw",
+    "project_url": "https://ryfqhotcyfgdzginfmqw.supabase.co",
+    "database_host": "db.ryfqhotcyfgdzginfmqw.supabase.co",
+    "port": 5432,
+    "user": "postgres",
+    "database_url_template": "postgresql://postgres.[YOUR_PASSWORD]@db.ryfqhotcyfgdzginfmqw.supabase.co:5432/postgres"
+  },
+  "render_backend": {
+    "environment_variables": [
+      { "key": "DATABASE_URL", "value": "See Supabase database_url_template" },
+      { "key": "SECRET_KEY", "value": "Generate a random string" },
+      { "key": "PYTHON_VERSION", "value": "3.14.3" }
+    ],
+    "root_directory": "backend/",
+    "build_command": "pip install -r requirements.txt",
+    "start_command": "gunicorn api:app"
+  },
+  "vercel_frontend": {
+    "root_directory": "frontend/",
+    "config_js_file": "frontend/static/js/config.js",
+    "api_url_placeholder": "Update with your Render app URL (e.g. https://your-app.onrender.com/api)"
+  }
+}
