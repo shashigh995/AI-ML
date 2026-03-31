@@ -64,6 +64,17 @@
         </div>
     </div>
 
+    <div id="trainingOverlay" class="training-overlay">
+        <div class="loader-container">
+            <div class="training-status" id="trainStatus">Initializing Training Engine...</div>
+            <p style="color: var(--text-secondary);">Connecting to Supabase AI Compute</p>
+            <div class="progress-bar-bg">
+                <div id="progressFill" class="progress-bar-fill"></div>
+            </div>
+            <div style="font-size: 0.9rem; color: var(--accent-cyan);" id="trainStep">Step 1/4: Analyzing Dataset</div>
+        </div>
+    </div>
+
     <script>
         async function loadTransactions() {
             const table = document.getElementById('transactionTable');
@@ -76,12 +87,48 @@
                 table.innerHTML += `<tr class="table-row"><td class="table-cell">#${t.transaction_id}</td><td class="table-cell">₹${t.amount}</td><td class="table-cell">${t.location}</td><td class="table-cell"><span class="badge ${badge}">${t.status}</span></td><td class="table-cell">${t.risk_score}</td><td class="table-cell"><button class="btn btn-primary" onclick="showExplanation(${t.id})">Explain</button></td></tr>`;
             });
         }
+
         async function trainAndRefresh() {
-            const btn = document.getElementById('trainModelBtn'); btn.innerHTML = 'Training...';
-            const res = await fetch(`${API_URL}/train`, { method: 'POST' });
-            const data = await res.json();
-            if (data.success) { alert(`Accuracy: ${data.accuracies.rf_accuracy}%`); loadTransactions(); }
-            btn.innerHTML = 'Re-Train Model';
+            const overlay = document.getElementById('trainingOverlay');
+            const fill = document.getElementById('progressFill');
+            const status = document.getElementById('trainStatus');
+            const step = document.getElementById('trainStep');
+            
+            overlay.style.display = 'flex';
+            
+            // Fake progress animation since training is one call
+            let p = 0;
+            const interval = setInterval(() => {
+                if (p < 85) {
+                    p += (90 - p) * 0.1;
+                    fill.style.width = p + '%';
+                    if (p > 20) { status.textContent = 'Training Random Forest Model...'; step.textContent = 'Step 2/4: Optimizing Weights'; }
+                    if (p > 50) { status.textContent = 'Generating SHAP Explanations...'; step.textContent = 'Step 3/4: Calculating Local Importances'; }
+                    if (p > 75) { status.textContent = 'Finalizing Model Exports...'; step.textContent = 'Step 4/4: Deploying to Production'; }
+                }
+            }, 800);
+
+            try {
+                const res = await fetch(`${API_URL}/train`, { method: 'POST' });
+                const data = await res.json();
+                
+                clearInterval(interval);
+                fill.style.width = '100%';
+                status.textContent = 'Training Complete!';
+                step.textContent = `Model Accuracy: ${data.accuracies.rf_accuracy}%`;
+                
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    fill.style.width = '0%';
+                    if (data.success) {
+                        loadTransactions();
+                    }
+                }, 1500);
+            } catch (err) {
+                clearInterval(interval);
+                overlay.style.display = 'none';
+                alert('Training failed. Check backend logs.');
+            }
         }
         async function showExplanation(id) {
             const modal = document.getElementById('explanationModal');
