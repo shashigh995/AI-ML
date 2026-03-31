@@ -433,9 +433,24 @@ body {
         font-size: 1.1rem;
     }
 
-    /* Hide logout from bottom bar */
+    /* Logout in bottom bar */
     .sidebar > div[style*="margin-top: auto"] {
-        display: none;
+        margin-top: 0 !important;
+        display: flex;
+        align-items: center;
+    }
+
+    .sidebar > div[style*="margin-top: auto"] .nav-link {
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.65rem;
+        text-align: center;
+        border-radius: 8px;
+    }
+
+    .sidebar > div[style*="margin-top: auto"] .nav-link i {
+        font-size: 1.1rem;
     }
 
     /* Main content gets full width */
