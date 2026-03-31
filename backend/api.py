@@ -132,11 +132,17 @@ def train_model():
             })
         
         df = pd.DataFrame(data)
-        # Diagnostic Log
-        print(f"COLUMNS FOUND: {list(df.columns)}")
+        # LOG STEP 1: Incoming Data
+        print(f"--- DATA RECEIVED: {len(df)} rows ---")
+        print(f"COLS: {list(df.columns)}")
         
         if len(df['Status'].unique()) < 2:
             return jsonify({'error': 'Dataset must contain both Fraud and Safe examples'})
+        
+        # FORCE CLEAR OLD MODEL
+        if os.path.exists('data/model.joblib'):
+            os.remove('data/model.joblib')
+            print("--- CLEANED OLD MODEL ---")
         
         results = model_engine.train(df)
         
@@ -151,13 +157,18 @@ def train_model():
         
         return jsonify({
             'success': True,
-            'version': '1.0.6 MASTER',
+            'version': '1.0.7 TRUTH',
             'message': 'Model trained and risk scores updated!',
             'accuracies': results
         })
     except Exception as e:
-        print(f"TRAIN ERROR: {str(e)}")
-        return jsonify({'error': f"Internal Error: {str(e)}"}), 500
+        print(f"!!! TRAIN ERROR !!!: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': f"Internal Error: {str(e)}",
+            'version': '1.0.7 TRUTH'
+        }), 500
 
 @app.route('/api/explain/<int:id>')
 def explain_transaction(id):
