@@ -50,18 +50,25 @@ class FraudDetectionModel:
         df = df.copy()
         df.dropna(inplace=True)
         
-        df['Amount_Norm'] = df['Amount'] # Simplified
-        df['Location_Encoded'] = LabelEncoder().fit_transform(df['Location'])
-        df['Type_Encoded'] = LabelEncoder().fit_transform(df['Transaction_Type'])
-        df['Device_Encoded'] = LabelEncoder().fit_transform(df['Device'])
+        # MASTER FIX v1.0.6: Universal Mapping
+        df['Location_Encoded'] = LabelEncoder().fit_transform(df['Location'].astype(str))
+        df['Type_Encoded'] = LabelEncoder().fit_transform(df['Transaction_Type'].astype(str))
+        df['Device_Encoded'] = LabelEncoder().fit_transform(df['Device'].astype(str))
         
         if 'Time' in df.columns:
             df['Hour'] = df['Time'].apply(lambda x: int(x.split(':')[0]) if isinstance(x, str) and ':' in x else 12)
         else:
             df['Hour'] = 12
             
-        X = df[['Amount', 'Location_Encoded', 'Type_Encoded', 'Hour', 'Device_Encoded']]
-        y = df['Status'].apply(lambda x: 1 if x.lower() == 'fraud' else 0)
+        final_features = ['Amount', 'Location_Encoded', 'Type_Encoded', 'Hour', 'Device_Encoded']
+        # Explicit check before sub-selecting
+        for f in final_features:
+            if f not in df.columns:
+                print(f"CRITICAL WARNING: {f} missing. Creating fallback...")
+                df[f] = 0
+                
+        X = df[final_features]
+        y = df['Status'].apply(lambda x: 1 if str(x).lower() == 'fraud' else 0)
         
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         self.X_test = X_test
