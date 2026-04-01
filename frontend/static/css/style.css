@@ -16,6 +16,31 @@
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.modal-open {
+    overflow: hidden !important;
+}
+
+.modal-open {
+    overflow: hidden !important;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: flex-start; /* Support scrolling starting from top */
+    justify-content: center;
+    z-index: 10000;
+    overflow-y: auto;
+    padding: 2rem 1rem;
+    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -289,7 +314,8 @@ body {
     position: relative;
     border: 1px solid var(--glass-border);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
+    overflow-y: auto;
+    margin: auto; /* Center the box */
 }
 
 .modal-header {
@@ -578,9 +604,15 @@ body {
     /* Modal full screen on mobile */
     .modal-content {
         width: 100%;
-        height: 100%;
+        height: auto;
+        min-height: 100%;
         max-width: 100%;
         border-radius: 0;
+        margin: 0;
+    }
+    
+    .modal {
+        padding: 0;
     }
 
     .modal-body {
