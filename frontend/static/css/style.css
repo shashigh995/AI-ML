@@ -383,6 +383,11 @@ body {
     margin-bottom: 0.5rem;
 }
 
+/* Mobile-only select all (hidden on desktop) */
+.mobile-select-all {
+    display: none;
+}
+
 /* ============================================
    MOBILE RESPONSIVE - Tablet & Below (768px)
    ============================================ */
@@ -489,6 +494,26 @@ body {
     /* Transaction table: hide header, card-style rows */
     .table-header {
         display: none !important;
+    }
+
+    /* Mobile select-all bar */
+    .mobile-select-all {
+        display: flex !important;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+        border-radius: 12px;
+        background: rgba(59, 130, 246, 0.06);
+        border: 1px solid rgba(59, 130, 246, 0.15);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .mobile-select-all .custom-checkbox {
+        width: 20px;
+        height: 20px;
     }
 
     .table-row {

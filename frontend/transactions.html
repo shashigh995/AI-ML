@@ -40,6 +40,10 @@
         </header>
 
         <section class="glass animate-fade" style="padding: 0; overflow: hidden;">
+            <div class="mobile-select-all">
+                <input type="checkbox" class="custom-checkbox" id="mobileSelectAll" onclick="toggleSelectAll(this)">
+                <label for="mobileSelectAll">Select All Transactions</label>
+            </div>
             <div class="table-container">
                 <div class="table-header">
                     <div><input type="checkbox" class="custom-checkbox" id="selectAll" onclick="toggleSelectAll(this)"></div>
@@ -142,6 +146,11 @@
 
         function toggleSelectAll(master) {
             document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = master.checked);
+            // Sync both select-all checkboxes
+            const desktopCb = document.getElementById('selectAll');
+            const mobileCb = document.getElementById('mobileSelectAll');
+            if (desktopCb) desktopCb.checked = master.checked;
+            if (mobileCb) mobileCb.checked = master.checked;
             updateSelection();
         }
 
